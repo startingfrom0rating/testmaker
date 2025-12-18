@@ -5,8 +5,8 @@ import google.generativeai as genai
 API_KEY = "AIzaSyAU1__pjshggnB_xtxgZJwaYyHuupQ1l88"
 genai.configure(api_key=API_KEY)
 
-# Initialize the Gemini Pro model
-model = genai.GenerativeModel('gemini-pro')
+# Initialize the Gemini model (use a supported, generally available model)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # App configuration
 st.set_page_config(page_title="AI Tutor", page_icon="📚", layout="wide")
