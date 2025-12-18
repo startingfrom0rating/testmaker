@@ -1,1 +1,1 @@
-﻿AIzaSyAU1__pjshggnB_xtxgZJwaYyHuupQ1l88
+Store your Google Generative AI API key securely (e.g., Streamlit secrets or environment variable).

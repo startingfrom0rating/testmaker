@@ -1,8 +1,13 @@
+import os
 import streamlit as st
 import google.generativeai as genai
 
 # Configure Google Gemini API
-API_KEY = "AIzaSyAU1__pjshggnB_xtxgZJwaYyHuupQ1l88"
+API_KEY = st.secrets.get("API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("GENAI_API_KEY")
+if not API_KEY:
+    st.error("Google API key is not configured. Set API_KEY in Streamlit secrets or the GOOGLE_API_KEY environment variable.")
+    st.stop()
+
 genai.configure(api_key=API_KEY)
 
 # Initialize the Gemini model (use a supported, generally available model)
