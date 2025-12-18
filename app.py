@@ -38,11 +38,11 @@ def configure_model():
         try:
             genai.configure(api_key=st.session_state.api_key)
             st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
-        except Exception as e:
+        except Exception:
             st.session_state.model = None
             st.session_state.api_key = None
             st.session_state.api_key_input = ""
-            st.error(f"Failed to initialize Gemini model. Please re-enter a valid API key. Details: {e}")
+            st.error("Failed to initialize Gemini model. Please re-enter a valid API key.")
 
 
 def login_screen():
@@ -352,7 +352,8 @@ def main():
                 st.rerun()
             st.info("Your API key is only kept in this session and not stored.")
             return
-        configure_model()
+        if not st.session_state.model:
+            configure_model()
         if not st.session_state.model:
             st.error("Model could not be initialized. Please enter a valid API key.")
             return
