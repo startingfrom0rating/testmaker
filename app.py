@@ -69,7 +69,7 @@ def login_screen():
     st.title("🔐 AI Tutor Login")
     st.markdown("Please enter the password to access the AI Tutor.")
     
-    if CORRECT_PASSWORD is None:
+    if not CORRECT_PASSWORD:
         st.error("Application password is not configured. Set the APP_PASSWORD environment variable.")
         return
     
@@ -369,7 +369,7 @@ def main():
         if not st.session_state.api_key:
             st.title("🔑 Enter your Google API Key")
             key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", key="api_key_entry")
-            if st.button("Save API Key") and key_input:
+            if st.button("Save API Key") and key_input and key_input.strip():
                 st.session_state.api_key = key_input.strip()
                 configure_model()
                 st.rerun()
@@ -378,7 +378,7 @@ def main():
         if not st.session_state.model:
             configure_model()
             if not st.session_state.model:
-                st.error("Model could not be initialized. Please enter a valid API key.")
+                st.error("Model could not be initialized. Re-enter your API key to try again.")
                 return
 
         # Sidebar navigation
