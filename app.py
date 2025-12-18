@@ -1,17 +1,5 @@
-import os
 import streamlit as st
 import google.generativeai as genai
-
-# Configure Google Gemini API
-API_KEY = st.secrets.get("API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("GENAI_API_KEY")
-if not API_KEY:
-    st.error("Google API key is not configured. Set API_KEY in Streamlit secrets or the GOOGLE_API_KEY environment variable.")
-    st.stop()
-
-genai.configure(api_key=API_KEY)
-
-# Initialize the Gemini model (use a supported, generally available model)
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 # App configuration
 st.set_page_config(page_title="AI Tutor", page_icon="📚", layout="wide")
@@ -24,6 +12,10 @@ def init_session_state():
     """Initialize session state variables."""
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+    if "api_key" not in st.session_state:
+        st.session_state.api_key = ""
+    if "model" not in st.session_state:
+        st.session_state.model = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     if "guided_history" not in st.session_state:
@@ -36,6 +28,13 @@ def init_session_state():
         st.session_state.quiz_submitted = False
     if "user_answers" not in st.session_state:
         st.session_state.user_answers = {}
+
+
+def configure_model():
+    """Configure the Gemini model once the user provides an API key."""
+    if st.session_state.api_key and not st.session_state.model:
+        genai.configure(api_key=st.session_state.api_key)
+        st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
 
 
 def login_screen():
@@ -79,7 +78,7 @@ Your task is to:
 Start by introducing the topic and explaining the first concept, then ask a question."""
         
         try:
-            response = model.generate_content(system_prompt)
+            response = st.session_state.model.generate_content(system_prompt)
             st.session_state.guided_history.append({"role": "assistant", "content": response.text})
         except Exception as e:
             st.error(f"Error generating response: {str(e)}")
@@ -112,7 +111,7 @@ Continue as a Socratic tutor. Based on the student's response:
 - Keep explanations concise and ask questions to verify understanding"""
             
             try:
-                response = model.generate_content(continuation_prompt)
+                response = st.session_state.model.generate_content(continuation_prompt)
                 st.session_state.guided_history.append({"role": "assistant", "content": response.text})
                 st.rerun()
             except Exception as e:
@@ -175,7 +174,7 @@ Correct: [A/B/C/D]
 Explanation: [Brief explanation]"""
         
         try:
-            response = model.generate_content(quiz_prompt)
+            response = st.session_state.model.generate_content(quiz_prompt)
             st.session_state.quiz_questions = parse_quiz(response.text)
         except Exception as e:
             st.error(f"Error generating quiz: {str(e)}")
@@ -310,7 +309,7 @@ def free_chat():
 Assistant:"""
         
         try:
-            response = model.generate_content(prompt)
+            response = st.session_state.model.generate_content(prompt)
             st.session_state.chat_history.append({"role": "assistant", "content": response.text})
             st.rerun()
         except Exception as e:
@@ -324,6 +323,17 @@ def main():
     if not st.session_state.authenticated:
         login_screen()
     else:
+        if not st.session_state.api_key:
+            st.title("🔑 Enter your Google API Key")
+            key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", value=st.session_state.api_key)
+            if st.button("Save API Key") and key_input:
+                st.session_state.api_key = key_input.strip()
+                configure_model()
+                st.rerun()
+            st.info("Your API key is only kept in this session and not stored.")
+            return
+        configure_model()
+
         # Sidebar navigation
         st.sidebar.title("📚 AI Tutor")
         st.sidebar.markdown("Your personalized AI study platform")
@@ -343,6 +353,8 @@ def main():
             st.session_state.quiz_questions = None
             st.session_state.quiz_submitted = False
             st.session_state.user_answers = {}
+            st.session_state.api_key = ""
+            st.session_state.model = None
             st.rerun()
         
         # Display selected mode

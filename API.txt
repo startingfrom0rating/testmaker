@@ -1,1 +1,1 @@
-Store your Google Generative AI API key securely (e.g., Streamlit secrets or environment variable).
+Enter your Google Generative AI API key in the app when prompted. Do not store it in this file.
