@@ -38,11 +38,12 @@ def configure_model():
         try:
             genai.configure(api_key=st.session_state.api_key)
             st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
-        except Exception:
+        except Exception as e:
             st.session_state.model = None
             st.session_state.api_key = None
             st.session_state.api_key_input = ""
             st.error("Failed to initialize Gemini model. Please re-enter a valid API key.")
+            st.caption(f"Initialization details: {e}")
 
 
 def login_screen():
@@ -354,9 +355,9 @@ def main():
             return
         if not st.session_state.model:
             configure_model()
-        if not st.session_state.model:
-            st.error("Model could not be initialized. Please enter a valid API key.")
-            return
+            if not st.session_state.model:
+                st.error("Model could not be initialized. Please enter a valid API key.")
+                return
 
         # Sidebar navigation
         st.sidebar.title("📚 AI Tutor")
