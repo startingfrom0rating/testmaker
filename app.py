@@ -34,9 +34,15 @@ def init_session_state():
 
 def configure_model():
     """Configure the Gemini model once the user provides an API key."""
-    if st.session_state.api_key and not st.session_state.model:
-        genai.configure(api_key=st.session_state.api_key)
-        st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
+    if st.session_state.api_key:
+        try:
+            genai.configure(api_key=st.session_state.api_key)
+            st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
+        except Exception as e:
+            st.session_state.model = None
+            st.session_state.api_key = None
+            st.session_state.api_key_input = ""
+            st.error(f"Failed to initialize Gemini model. Please re-enter a valid API key. Details: {e}")
 
 
 def login_screen():
@@ -58,6 +64,10 @@ def guided_learning():
     """Guided Learning mode - Socratic tutor."""
     st.header("📖 Guided Learning")
     st.markdown("Learn any topic step-by-step with a Socratic tutor approach.")
+    
+    if not st.session_state.model:
+        st.error("Model is not initialized. Please enter a valid API key to continue.")
+        return
     
     # Topic input
     topic = st.text_input("Enter a topic you want to learn:", value=st.session_state.guided_topic)
@@ -124,6 +134,10 @@ def practice_tests():
     """Practice Tests mode - Quiz generator."""
     st.header("📝 Practice Tests")
     st.markdown("Generate quizzes to test your knowledge on any topic.")
+    
+    if not st.session_state.model:
+        st.error("Model is not initialized. Please enter a valid API key to continue.")
+        return
     
     topic = st.text_input("Enter a topic for the quiz:")
     
@@ -278,6 +292,10 @@ def free_chat():
     st.header("💬 Free Chat")
     st.markdown("Ask any question or discuss any topic with the AI.")
     
+    if not st.session_state.model:
+        st.error("Model is not initialized. Please enter a valid API key to continue.")
+        return
+    
     # Display chat history
     for message in st.session_state.chat_history:
         if message["role"] == "user":
@@ -330,12 +348,14 @@ def main():
             key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", key="api_key_input")
             if st.button("Save API Key") and key_input:
                 st.session_state.api_key = key_input.strip()
-                st.session_state.model = None
                 configure_model()
                 st.rerun()
             st.info("Your API key is only kept in this session and not stored.")
             return
         configure_model()
+        if not st.session_state.model:
+            st.error("Model could not be initialized. Please enter a valid API key.")
+            return
 
         # Sidebar navigation
         st.sidebar.title("📚 AI Tutor")
