@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
@@ -6,7 +7,7 @@ from google.api_core.exceptions import GoogleAPIError
 st.set_page_config(page_title="AI Tutor", page_icon="📚", layout="wide")
 
 # Password for authentication
-CORRECT_PASSWORD = "Yannou5423!!"
+CORRECT_PASSWORD = os.getenv("APP_PASSWORD")
 
 
 def init_session_state():
@@ -17,6 +18,17 @@ def init_session_state():
         st.session_state.api_key = None
     if "api_key_entry" not in st.session_state:
         st.session_state.api_key_entry = ""
+
+
+def reset_api_state(message, details=None, clear_entry=True):
+    """Clear API state and surface an error to the user."""
+    st.session_state.model = None
+    st.session_state.api_key = None
+    if clear_entry:
+        st.session_state.api_key_entry = ""
+    st.error(message)
+    if details:
+        st.caption(details)
     if "model" not in st.session_state:
         st.session_state.model = None
     if "chat_history" not in st.session_state:
@@ -40,22 +52,26 @@ def configure_model():
             genai.configure(api_key=st.session_state.api_key)
             st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
         except GoogleAPIError as e:
-            st.session_state.model = None
-            st.session_state.api_key = None
-            st.session_state.api_key_entry = ""
-            st.error("Failed to initialize Gemini model. Please re-enter a valid API key.")
-            st.caption(f"Initialization details: {e}")
+            reset_api_state(
+                "Failed to initialize Gemini model. Please re-enter a valid API key.",
+                f"Initialization details: {e}",
+            )
         except Exception as e:
-            st.session_state.model = None
-            st.session_state.api_key = None
-            st.error("Unexpected error initializing Gemini model. Please try again.")
-            st.caption(f"Details: {e}")
+            reset_api_state(
+                "Unexpected error initializing Gemini model. Please try again.",
+                f"Details: {e}",
+                clear_entry=False,
+            )
 
 
 def login_screen():
     """Display the login screen."""
     st.title("🔐 AI Tutor Login")
     st.markdown("Please enter the password to access the AI Tutor.")
+    
+    if CORRECT_PASSWORD is None:
+        st.error("Application password is not configured. Set the APP_PASSWORD environment variable.")
+        return
     
     password = st.text_input("Password", type="password")
     
