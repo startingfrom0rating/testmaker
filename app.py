@@ -18,17 +18,6 @@ def init_session_state():
         st.session_state.api_key = None
     if "api_key_entry" not in st.session_state:
         st.session_state.api_key_entry = ""
-
-
-def reset_api_state(message, details=None, clear_entry=True):
-    """Clear API state and surface an error to the user."""
-    st.session_state.model = None
-    st.session_state.api_key = None
-    if clear_entry:
-        st.session_state.api_key_entry = ""
-    st.error(message)
-    if details:
-        st.caption(details)
     if "model" not in st.session_state:
         st.session_state.model = None
     if "chat_history" not in st.session_state:
@@ -45,6 +34,17 @@ def reset_api_state(message, details=None, clear_entry=True):
         st.session_state.user_answers = {}
 
 
+def reset_api_state_with_error(message, details=None, clear_entry=True):
+    """Clear API state and surface an error to the user."""
+    st.session_state.model = None
+    st.session_state.api_key = None
+    if clear_entry:
+        st.session_state.api_key_entry = ""
+    st.error(message)
+    if details:
+        st.caption(details)
+
+
 def configure_model():
     """Configure the Gemini model once the user provides an API key."""
     if st.session_state.api_key:
@@ -52,12 +52,12 @@ def configure_model():
             genai.configure(api_key=st.session_state.api_key)
             st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
         except GoogleAPIError as e:
-            reset_api_state(
+            reset_api_state_with_error(
                 "Failed to initialize Gemini model. Please re-enter a valid API key.",
                 f"Initialization details: {e}",
             )
         except Exception as e:
-            reset_api_state(
+            reset_api_state_with_error(
                 "Unexpected error initializing Gemini model. Please try again.",
                 f"Details: {e}",
                 clear_entry=False,
