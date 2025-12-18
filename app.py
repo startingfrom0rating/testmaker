@@ -1,7 +1,7 @@
 import os
 import streamlit as st
-import google.generativeai as genai
-from google.api_core.exceptions import GoogleAPIError
+import google.genai as genai
+from google.genai import errors as genai_errors
 
 # App configuration
 st.set_page_config(page_title="AI Tutor", page_icon="📚", layout="wide")
@@ -18,8 +18,8 @@ def init_session_state():
         st.session_state.api_key = None
     if "api_key_entry" not in st.session_state:
         st.session_state.api_key_entry = ""
-    if "model" not in st.session_state:
-        st.session_state.model = None
+    if "client" not in st.session_state:
+        st.session_state.client = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     if "guided_history" not in st.session_state:
@@ -36,7 +36,7 @@ def init_session_state():
 
 def reset_api_state_with_error(message, details=None, clear_entry=True):
     """Clear API state and surface an error to the user."""
-    st.session_state.model = None
+    st.session_state.client = None
     st.session_state.api_key = None
     if clear_entry:
         st.session_state.api_key_entry = ""
@@ -45,20 +45,19 @@ def reset_api_state_with_error(message, details=None, clear_entry=True):
         st.caption(details)
 
 
-def configure_model():
-    """Configure the Gemini model once the user provides an API key."""
+def configure_client():
+    """Configure the Gemini client once the user provides an API key."""
     if st.session_state.api_key:
         try:
-            genai.configure(api_key=st.session_state.api_key)
-            st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
-        except GoogleAPIError as e:
+            st.session_state.client = genai.Client(api_key=st.session_state.api_key)
+        except genai_errors.ClientError as e:
             reset_api_state_with_error(
-                "Failed to initialize Gemini model. Please re-enter a valid API key.",
+                "Failed to initialize Gemini client. Please re-enter a valid API key.",
                 f"Initialization details: {e}",
             )
         except Exception as e:
             reset_api_state_with_error(
-                "Unexpected error initializing Gemini model. Please try again.",
+                "Unexpected error initializing Gemini client. Please try again.",
                 f"Details: {e}",
                 clear_entry=False,
             )
@@ -88,8 +87,8 @@ def guided_learning():
     st.header("📖 Guided Learning")
     st.markdown("Learn any topic step-by-step with a Socratic tutor approach.")
     
-    if not st.session_state.model:
-        st.error("Model is not initialized. Please enter a valid API key to continue.")
+    if not st.session_state.client:
+        st.error("Client is not initialized. Please enter a valid API key to continue.")
         return
     
     # Topic input
@@ -113,7 +112,10 @@ Your task is to:
 Start by introducing the topic and explaining the first concept, then ask a question."""
         
         try:
-            response = st.session_state.model.generate_content(system_prompt)
+            response = st.session_state.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=system_prompt
+            )
             st.session_state.guided_history.append({"role": "assistant", "content": response.text})
         except Exception as e:
             st.error(f"Error generating response: {str(e)}")
@@ -146,7 +148,10 @@ Continue as a Socratic tutor. Based on the student's response:
 - Keep explanations concise and ask questions to verify understanding"""
             
             try:
-                response = st.session_state.model.generate_content(continuation_prompt)
+                response = st.session_state.client.models.generate_content(
+                    model='gemini-2.0-flash-exp',
+                    contents=continuation_prompt
+                )
                 st.session_state.guided_history.append({"role": "assistant", "content": response.text})
                 st.rerun()
             except Exception as e:
@@ -158,8 +163,8 @@ def practice_tests():
     st.header("📝 Practice Tests")
     st.markdown("Generate quizzes to test your knowledge on any topic.")
     
-    if not st.session_state.model:
-        st.error("Model is not initialized. Please enter a valid API key to continue.")
+    if not st.session_state.client:
+        st.error("Client is not initialized. Please enter a valid API key to continue.")
         return
     
     topic = st.text_input("Enter a topic for the quiz:")
@@ -213,7 +218,10 @@ Correct: [A/B/C/D]
 Explanation: [Brief explanation]"""
         
         try:
-            response = st.session_state.model.generate_content(quiz_prompt)
+            response = st.session_state.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=quiz_prompt
+            )
             st.session_state.quiz_questions = parse_quiz(response.text)
         except Exception as e:
             st.error(f"Error generating quiz: {str(e)}")
@@ -315,8 +323,8 @@ def free_chat():
     st.header("💬 Free Chat")
     st.markdown("Ask any question or discuss any topic with the AI.")
     
-    if not st.session_state.model:
-        st.error("Model is not initialized. Please enter a valid API key to continue.")
+    if not st.session_state.client:
+        st.error("Client is not initialized. Please enter a valid API key to continue.")
         return
     
     # Display chat history
@@ -352,7 +360,10 @@ def free_chat():
 Assistant:"""
         
         try:
-            response = st.session_state.model.generate_content(prompt)
+            response = st.session_state.client.models.generate_content(
+                model='gemini-2.0-flash-exp',
+                contents=prompt
+            )
             st.session_state.chat_history.append({"role": "assistant", "content": response.text})
             st.rerun()
         except Exception as e:
@@ -371,14 +382,14 @@ def main():
             key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", key="api_key_entry")
             if st.button("Save API Key") and key_input and key_input.strip():
                 st.session_state.api_key = key_input.strip()
-                configure_model()
+                configure_client()
                 st.rerun()
             st.info("Your API key is only kept in this session and not stored.")
             return
-        if not st.session_state.model:
-            configure_model()
-            if not st.session_state.model:
-                st.error("Model could not be initialized. Re-enter your API key to try again.")
+        if not st.session_state.client:
+            configure_client()
+            if not st.session_state.client:
+                st.error("Client could not be initialized. Re-enter your API key to try again.")
                 return
 
         # Sidebar navigation
@@ -402,7 +413,7 @@ def main():
             st.session_state.user_answers = {}
             st.session_state.api_key = None
             st.session_state.api_key_entry = ""
-            st.session_state.model = None
+            st.session_state.client = None
             st.rerun()
         
         # Display selected mode
