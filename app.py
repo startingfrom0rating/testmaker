@@ -13,7 +13,9 @@ def init_session_state():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     if "api_key" not in st.session_state:
-        st.session_state.api_key = ""
+        st.session_state.api_key = None
+    if "api_key_input" not in st.session_state:
+        st.session_state.api_key_input = ""
     if "model" not in st.session_state:
         st.session_state.model = None
     if "chat_history" not in st.session_state:
@@ -325,9 +327,10 @@ def main():
     else:
         if not st.session_state.api_key:
             st.title("🔑 Enter your Google API Key")
-            key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", value=st.session_state.api_key)
+            key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", key="api_key_input")
             if st.button("Save API Key") and key_input:
                 st.session_state.api_key = key_input.strip()
+                st.session_state.model = None
                 configure_model()
                 st.rerun()
             st.info("Your API key is only kept in this session and not stored.")
@@ -353,7 +356,8 @@ def main():
             st.session_state.quiz_questions = None
             st.session_state.quiz_submitted = False
             st.session_state.user_answers = {}
-            st.session_state.api_key = ""
+            st.session_state.api_key = None
+            st.session_state.api_key_input = ""
             st.session_state.model = None
             st.rerun()
         
