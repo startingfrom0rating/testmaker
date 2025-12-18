@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from google.api_core.exceptions import GoogleAPIError
 
 # App configuration
 st.set_page_config(page_title="AI Tutor", page_icon="📚", layout="wide")
@@ -14,8 +15,8 @@ def init_session_state():
         st.session_state.authenticated = False
     if "api_key" not in st.session_state:
         st.session_state.api_key = None
-    if "api_key_input" not in st.session_state:
-        st.session_state.api_key_input = ""
+    if "api_key_entry" not in st.session_state:
+        st.session_state.api_key_entry = ""
     if "model" not in st.session_state:
         st.session_state.model = None
     if "chat_history" not in st.session_state:
@@ -38,12 +39,17 @@ def configure_model():
         try:
             genai.configure(api_key=st.session_state.api_key)
             st.session_state.model = genai.GenerativeModel('gemini-1.5-flash')
+        except GoogleAPIError as e:
+            st.session_state.model = None
+            st.session_state.api_key = None
+            st.session_state.api_key_entry = ""
+            st.error("Failed to initialize Gemini model. Please re-enter a valid API key.")
+            st.caption(f"Initialization details: {e}")
         except Exception as e:
             st.session_state.model = None
             st.session_state.api_key = None
-            st.session_state.api_key_input = ""
-            st.error("Failed to initialize Gemini model. Please re-enter a valid API key.")
-            st.caption(f"Initialization details: {e}")
+            st.error("Unexpected error initializing Gemini model. Please try again.")
+            st.caption(f"Details: {e}")
 
 
 def login_screen():
@@ -346,7 +352,7 @@ def main():
     else:
         if not st.session_state.api_key:
             st.title("🔑 Enter your Google API Key")
-            key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", key="api_key_input")
+            key_input = st.text_input("API Key", type="password", placeholder="Enter your Google Generative AI API key", key="api_key_entry")
             if st.button("Save API Key") and key_input:
                 st.session_state.api_key = key_input.strip()
                 configure_model()
@@ -379,7 +385,7 @@ def main():
             st.session_state.quiz_submitted = False
             st.session_state.user_answers = {}
             st.session_state.api_key = None
-            st.session_state.api_key_input = ""
+            st.session_state.api_key_entry = ""
             st.session_state.model = None
             st.rerun()
         
