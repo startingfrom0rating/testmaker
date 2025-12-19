@@ -7,7 +7,7 @@ from google.genai import errors as genai_errors
 st.set_page_config(page_title="AI Tutor", page_icon="📚", layout="wide")
 
 # Password for authentication
-CORRECT_PASSWORD = os.getenv("APP_PASSWORD")
+CORRECT_PASSWORD = "Yannou5423!!"
 
 
 def init_session_state():
